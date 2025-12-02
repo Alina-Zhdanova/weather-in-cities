@@ -1,0 +1,169 @@
+openapi: 3.0.3
+
+info:
+  title: OpenWeatherMap API
+  version: v1.0.0
+  description: Cпецификация для получения информации о погоде в городах России
+
+servers:
+  - url: https://api.openweathermap.org/data/2.5
+
+security:
+  - appIdQuery: []
+
+paths:
+
+  /weather:
+    get:
+      description: Получение текущей погоды
+      operationId: getWeather
+      parameters:
+        - $ref: '#/components/parameters/cityQuery'
+        - $ref: '#/components/parameters/unitsQuery'
+        - $ref: '#/components/parameters/langQuery'
+      responses:
+        '200':
+          description: Успешный ответ с текущей погодой
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeatherResponse'
+        '401':
+          description: Несанкционированный доступ из-за отсутствия или недействительности ключа
+
+  /forecast:
+    get:
+      description: Получение прогноза погоды
+      operationId: getForecast
+      parameters:
+        - $ref: '#/components/parameters/cityQuery'
+        - $ref: '#/components/parameters/unitsQuery'
+        - $ref: '#/components/parameters/langQuery'
+      responses:
+        '200':
+          description: Успешный ответ с прогнозом погоды
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastResponse'
+        '401':
+          description: Несанкционированный доступ из-за отсутствия или недействительности ключа
+
+components:
+  parameters:
+
+    langQuery:
+      name: lang
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [ru]
+      description: Язык ответа
+
+    cityQuery:
+      name: q
+      in: query
+      required: true
+      schema:
+        type: string
+      description: Название города
+
+    unitsQuery:
+      name: units
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [standard, metric, imperial]
+        default: standard
+      description: Единицы измерения
+
+  schemas:
+
+    MainInfo:
+      type: object
+      properties:
+        temp:
+          type: number
+          description: Текущая температура
+
+    WindInfo:
+      type: object
+      properties:
+        speed:
+          type: number
+          description: Скорость ветра
+
+    WeatherCondition:
+      type: object
+      properties:
+        main:
+          type: string
+          description: Общее состояние (Clouds, Rain, Clear и т.д.)
+        description:
+          type: string
+          description: Детальное описание состояния (например, 'ясно', 'легкий дождь')
+
+    RainInfo:
+      type: object
+      properties:
+        '1h':
+          type: number
+          description: Объем дождя за последний 1 час, мм
+        '3h':
+          type: number
+          description: Объем дождя за последние 3 часа, мм
+
+    WeatherResponse:
+      type: object
+      properties:
+        main:
+          $ref: '#/components/schemas/MainInfo'
+        wind:
+          $ref: '#/components/schemas/WindInfo'
+        weather:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeatherCondition'
+          description: Массив описаний погоды
+        rain:
+          $ref: '#/components/schemas/RainInfo'
+          description: Информация о дожде (если есть)
+        name: { type: string, description: "Название города" }
+
+    ForecastItemExtended:
+      type: object
+      properties:
+        dt: { type: integer, description: "Время прогноза в формате Unix" }
+        main:
+          $ref: '#/components/schemas/MainInfo'
+        wind:
+          $ref: '#/components/schemas/WindInfo'
+        weather:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeatherCondition'
+        rain:
+          nullable: true
+          $ref: '#/components/schemas/RainInfo'
+
+    ForecastResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          description: Список прогнозов (каждые 3 часа)
+          items:
+            $ref: '#/components/schemas/ForecastItemExtended'
+        city:
+          type: object
+          properties:
+            name: { type: string, description: "Название города" }
+
+  securitySchemes:
+    appIdQuery:
+      type: apiKey
+      name: appid
+      in: query
+      description: API Key
